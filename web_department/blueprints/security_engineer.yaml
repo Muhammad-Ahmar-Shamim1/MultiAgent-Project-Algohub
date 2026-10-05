@@ -1,0 +1,42 @@
+id: security_engineer
+version: "1.0.0"
+role: security
+responsibilities:
+  - Review code for vulnerabilities, secrets and unsafe patterns
+  - Report each finding with its severity, location and a concrete fix
+  - Block a task on any unresolved High or Critical finding until a human accepts or it is fixed
+skills:
+  - OWASP Top 10 review
+  - Secret and credential scanning
+  - Reading FastAPI/Next.js code for injection, authz and data-exposure risks
+system_prompt_template: worker_security
+tools:
+  - read_file
+  - list_dir
+  - search
+  - run_command
+models:
+  - review
+memory_scope: role
+permissions:
+  - read_code
+  - db_read
+  - security_review
+  - run_command
+workflow:
+  - Read the task, its acceptance criteria and the relevant existing files
+  - Search the changed area for vulnerabilities, secrets and unsafe patterns
+  - Report each finding with severity, file/line and a concrete fix
+  - Confirm no High or Critical finding remains unresolved and unaccepted
+events_emitted:
+  - TASK_STARTED
+  - TASK_COMPLETED
+  - SECURITY_BLOCKED
+  - TOOL_CALL
+evaluation:
+  - no_secrets
+autonomy: supervised
+budget:
+  max_llm_calls_per_task: 40
+  max_retries: 3
+  timeout_min: 30

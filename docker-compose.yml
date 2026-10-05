@@ -1,0 +1,87 @@
+services:
+  postgres:
+    image: pgvector/pgvector:pg16
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-algohub}
+      POSTGRES_USER: ${POSTGRES_USER:-algohub}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-changeme}
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-algohub} -d ${POSTGRES_DB:-algohub}"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  redis:
+    image: redis:7
+    restart: unless-stopped
+    ports:
+      - "6379:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    env_file:
+      - .env
+    environment:
+      DATABASE_URL: postgresql+asyncpg://${POSTGRES_USER:-algohub}:${POSTGRES_PASSWORD:-changeme}@postgres:5432/${POSTGRES_DB:-algohub}
+      REDIS_URL: redis://redis:6379/0
+    ports:
+      - "8000:8000"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+
+  runner:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    command: ["python", "-m", "web_department.orchestrator.runner"]
+    env_file:
+      - .env
+    environment:
+      DATABASE_URL: postgresql+asyncpg://${POSTGRES_USER:-algohub}:${POSTGRES_PASSWORD:-changeme}@postgres:5432/${POSTGRES_DB:-algohub}
+      REDIS_URL: redis://redis:6379/0
+    volumes:
+      # WorkstationManager talks to the *host's* Docker daemon to create sibling containers
+      # (this is Docker-outside-of-Docker, not Docker-in-Docker) - a bind mount's source path
+      # must therefore be a path the host itself has, not one inside this container. Set
+      # WORKSTATION_DATA_DIR in .env to an absolute host path (not the default `./data/workspaces`)
+      # and mount that same absolute path here so both sides agree on it.
+      - /var/run/docker.sock:/var/run/docker.sock
+      - ${WORKSTATION_DATA_DIR:-/tmp/algohub-workspaces}:${WORKSTATION_DATA_DIR:-/tmp/algohub-workspaces}
+    # If the mounted socket's group ownership doesn't grant this image's non-root `app` user
+    # access on your host, add e.g. `group_add: ["999"]` (your host's docker group gid) in a
+    # compose override - the socket's ownership isn't something this file can know in advance.
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+
+  ollama:
+    image: ollama/ollama:latest
+    restart: unless-stopped
+    profiles: ["local-llm"]
+    ports:
+      - "11434:11434"
+    volumes:
+      - ollama_data:/root/.ollama
+
+volumes:
+  pgdata:
+  ollama_data:

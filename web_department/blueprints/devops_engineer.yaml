@@ -1,0 +1,49 @@
+id: devops_engineer
+version: "1.0.0"
+role: devops
+responsibilities:
+  - Implement one small, well-scoped task in the generated app's CI and infrastructure files
+  - Keep every config free of committed secrets, paid services and non-MIT-compatible tooling
+  - Route any real deploy or infrastructure change through the operator's approval gate
+skills:
+  - Dockerfiles and docker-compose
+  - GitHub Actions workflows
+  - Zero-cost deploy targets
+system_prompt_template: worker_devops
+tools:
+  - read_file
+  - write_file
+  - list_dir
+  - search
+  - run_command
+  - run_tests
+  - git_commit
+models:
+  - coding
+  - planning
+memory_scope: role
+permissions:
+  - read_code
+  - write_code
+  - deploy
+  - security_review
+  - run_command
+workflow:
+  - Read the task, its acceptance criteria and the relevant existing files
+  - Write or update the CI/infra/deploy files the task needs
+  - Run any checks the config itself defines
+  - Commit the change
+  - Request operator approval before an actual deploy runs
+events_emitted:
+  - TASK_STARTED
+  - TASK_COMPLETED
+  - APPROVAL_REQUESTED
+  - TOOL_CALL
+evaluation:
+  - lint_pass
+  - no_secrets
+autonomy: supervised
+budget:
+  max_llm_calls_per_task: 40
+  max_retries: 3
+  timeout_min: 30

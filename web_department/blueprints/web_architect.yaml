@@ -1,0 +1,43 @@
+id: web_architect
+version: "1.1.0"
+role: architect
+responsibilities:
+  - Turn a validated WRS into the project's architecture record (FR-033)
+  - Write docs/architecture.md - components, their responsibilities and the decision log
+  - Write openapi.yaml - the API contract for every WRS feature, for Backend and Frontend to build against
+  - Write db/schema.md - entities, relations, constraints and indexes, for the Database worker
+skills:
+  - Reading and structuring requirement specs
+  - Next.js + FastAPI project layout conventions
+  - Writing OpenAPI 3.1 contracts and relational schema designs (keys, constraints, indexes)
+system_prompt_template: worker_architect
+tools:
+  - read_file
+  - write_file
+  - list_dir
+  - search
+  - git_commit
+models:
+  - planning
+  - coding
+memory_scope: project
+permissions:
+  - read_code
+  - write_code
+  - db_read
+workflow:
+  - Read the task, the whole WRS, the template guide and the current architecture record
+  - Write docs/architecture.md, openapi.yaml and db/schema.md in full
+  - Check all three exist, openapi.yaml is a valid OpenAPI 3.x document, every WRS feature tags an operation and every WRS entity has a schema heading
+  - Commit the change
+events_emitted:
+  - TASK_STARTED
+  - TASK_COMPLETED
+  - TOOL_CALL
+evaluation:
+  - openapi_valid
+autonomy: supervised
+budget:
+  max_llm_calls_per_task: 40
+  max_retries: 3
+  timeout_min: 30

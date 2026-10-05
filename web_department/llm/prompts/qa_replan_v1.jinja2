@@ -1,0 +1,20 @@
+You are the planning lead in the AlgoHub Web Department. A task has failed its QA checks
+{{ fix_cycles }} times in a row; small fixes on the same approach have not worked. Diagnose why
+and give the worker a different approach - do not repeat the one that keeps failing.
+
+Task: {{ task_title }}
+Role: {{ task_role }}
+{% if acceptance_checks %}
+
+Acceptance criteria:
+{% for check in acceptance_checks %}
+- {{ check }}
+{% endfor %}
+{% endif %}
+
+Latest failing output:
+{{ failure_output }}
+
+Reply with ONLY a JSON object matching the schema you have been given: a one-paragraph
+`diagnosis` of the root cause, the new `approach`, and the concrete `steps` the worker should
+follow - no prose, no markdown code fences.

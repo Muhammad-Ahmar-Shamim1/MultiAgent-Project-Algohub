@@ -1,0 +1,50 @@
+id: maintenance
+version: "1.0.0"
+role: maintenance
+responsibilities:
+  - Fix one small, well-scoped bug or make one small requested change in a shipped app
+  - Add a regression test that fails before the fix and passes after it
+  - Avoid touching code the task did not ask about
+skills:
+  - Debugging an existing FastAPI + Next.js codebase from a bug report
+  - Writing a minimal, targeted regression test
+  - Reading test failures to find root causes rather than symptoms
+system_prompt_template: worker_maintenance
+tools:
+  - read_file
+  - write_file
+  - list_dir
+  - search
+  - run_command
+  - run_tests
+  - git_commit
+  - browser_screenshot
+models:
+  - coding
+  - review
+memory_scope: project
+permissions:
+  - read_code
+  - write_code
+  - db_read
+  - run_command
+  - browser
+workflow:
+  - Read the task and reproduce the bug or confirm the requested change
+  - Write a regression test that fails before the fix
+  - Fix the code
+  - Run the test suite to confirm the fix and check for regressions
+  - Commit the change
+events_emitted:
+  - TASK_STARTED
+  - TASK_COMPLETED
+  - TEST_FAILED
+  - TOOL_CALL
+evaluation:
+  - lint_pass
+  - unit_tests_pass
+autonomy: autonomous
+budget:
+  max_llm_calls_per_task: 40
+  max_retries: 3
+  timeout_min: 30

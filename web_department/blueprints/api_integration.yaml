@@ -1,0 +1,51 @@
+id: api_integration
+version: "1.0.0"
+role: api_integration
+responsibilities:
+  - Wire an already-built frontend page to its backend endpoint, or connect a third-party API
+  - Keep frontend-to-backend calls routed through frontend/src/lib/api-client.ts
+  - Prove the wiring works end to end with an automated test before marking the task done
+skills:
+  - REST client integration in Next.js
+  - FastAPI endpoint contracts
+  - Playwright end-to-end testing
+system_prompt_template: worker_api_integration
+tools:
+  - read_file
+  - write_file
+  - list_dir
+  - search
+  - run_command
+  - run_tests
+  - git_commit
+  - browser_screenshot
+models:
+  - coding
+  - review
+memory_scope: project
+permissions:
+  - read_code
+  - write_code
+  - db_read
+  - run_command
+  - browser
+workflow:
+  - Read the task, its acceptance criteria and the relevant existing files
+  - Wire the frontend page to the backend endpoint (or third-party API)
+  - Add or extend a test proving the wiring works end to end
+  - Run the test suite
+  - Commit the change
+events_emitted:
+  - TASK_STARTED
+  - TASK_COMPLETED
+  - TEST_FAILED
+  - TOOL_CALL
+evaluation:
+  - lint_pass
+  - unit_tests_pass
+  - e2e_pass
+autonomy: autonomous
+budget:
+  max_llm_calls_per_task: 40
+  max_retries: 3
+  timeout_min: 30

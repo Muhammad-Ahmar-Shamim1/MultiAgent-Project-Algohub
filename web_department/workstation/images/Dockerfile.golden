@@ -1,0 +1,88 @@
+# The golden-v1 workstation image (FR-060, FR-061, NFR-007): everything a worker needs to build,
+# test and run a Next.js + FastAPI + PostgreSQL project, as a non-root user.
+#
+# Build:  docker build -t algohub/workstation:golden-v1 -f Dockerfile.golden .
+FROM ubuntu:24.04
+
+ENV DEBIAN_FRONTEND=noninteractive \
+    PYTHONDONTWRITEBYTECODE=1 \
+    PYTHONUNBUFFERED=1 \
+    PIP_BREAK_SYSTEM_PACKAGES=1 \
+    PIP_NO_CACHE_DIR=1 \
+    PLAYWRIGHT_BROWSERS_PATH=/opt/playwright-browsers
+
+# Base toolchain: Python 3 (3.12 on ubuntu:24.04, satisfies requires-python >=3.11), git, the
+# Postgres client, and build essentials for native npm deps.
+RUN apt-get update && apt-get install -y --no-install-recommends \
+        python3 python3-pip python3-venv \
+        git curl ca-certificates gnupg build-essential \
+        postgresql-client \
+    && rm -rf /var/lib/apt/lists/*
+
+# Node 20 + pnpm.
+RUN curl -fsSL https://deb.nodesource.com/setup_20.x | bash - \
+    && apt-get install -y --no-install-recommends nodejs \
+    && npm install -g pnpm@9 \
+    && rm -rf /var/lib/apt/lists/*
+
+# pytest + Playwright with Chromium. Installed as root so --with-deps can use apt, but the browser
+# binaries land in a world-readable path so the non-root `agent` user can still launch them.
+#
+# Both steps get an OUTER shell-level retry loop, not just pip's own --retries: on a connection
+# that trickles data slowly rather than failing outright, a download can die mid-transfer with a
+# raw socket/SSL exception (observed: 5.7/48.2 MB at 14.8 kB/s, then reset) that pip's own retry
+# logic doesn't catch cleanly - only re-invoking the whole command does.
+RUN mkdir -p "$PLAYWRIGHT_BROWSERS_PATH" \
+    && ( for i in 1 2 3 4 5; do \
+           pip install --retries 10 --timeout 60 playwright==1.* pytest==8.* && exit 0; \
+           echo "pip install failed (attempt $i), retrying..." >&2; \
+           sleep 10; \
+         done; exit 1 ) \
+    && ( for i in 1 2 3 4 5; do \
+           playwright install --with-deps chromium && exit 0; \
+           echo "playwright install failed (attempt $i), retrying..." >&2; \
+           sleep 10; \
+         done; exit 1 ) \
+    && chmod -R a+rX "$PLAYWRIGHT_BROWSERS_PATH"
+
+# Security scanners (FR-110, web_department/security/scanners.py): Semgrep CE and pip-audit from
+# PyPI; Gitleaks and Trivy as pinned release binaries, verified against the release's own
+# checksum file (SRS 13.1: pin versions against supply-chain attacks). amd64 hosts only for now.
+ARG GITLEAKS_VERSION=8.30.1
+ARG TRIVY_VERSION=0.74.0
+RUN ( for i in 1 2 3 4 5; do \
+        pip install --retries 10 --timeout 60 "semgrep==1.*" "pip-audit==2.*" && exit 0; \
+        echo "pip install failed (attempt $i), retrying..." >&2; \
+        sleep 10; \
+      done; exit 1 ) \
+    && cd /tmp \
+    && GL="gitleaks_${GITLEAKS_VERSION}_linux_x64.tar.gz" \
+    && GL_URL="https://github.com/gitleaks/gitleaks/releases/download/v${GITLEAKS_VERSION}" \
+    && curl -fsSL --retry 5 -O "$GL_URL/$GL" \
+    && curl -fsSL --retry 5 -O "$GL_URL/gitleaks_${GITLEAKS_VERSION}_checksums.txt" \
+    && grep " $GL\$" "gitleaks_${GITLEAKS_VERSION}_checksums.txt" | sha256sum -c - \
+    && tar -xzf "$GL" -C /usr/local/bin gitleaks \
+    && TV="trivy_${TRIVY_VERSION}_Linux-64bit.deb" \
+    && TV_URL="https://github.com/aquasecurity/trivy/releases/download/v${TRIVY_VERSION}" \
+    && curl -fsSL --retry 5 -O "$TV_URL/$TV" \
+    && curl -fsSL --retry 5 -O "$TV_URL/trivy_${TRIVY_VERSION}_checksums.txt" \
+    && grep " $TV\$" "trivy_${TRIVY_VERSION}_checksums.txt" | sha256sum -c - \
+    && dpkg -i "$TV" \
+    && rm -f /tmp/gitleaks_* /tmp/trivy_*
+
+RUN groupadd --system agent \
+    && useradd --system --create-home --gid agent --shell /bin/bash agent \
+    && mkdir -p /workspace \
+    && chown agent:agent /workspace
+
+USER agent
+WORKDIR /workspace
+
+# A default identity so `git commit` (workstation/tools.py's git_commit) works out of the box;
+# workers commit as this machine identity, not as a person. Runs as `agent` so it lands in
+# /home/agent/.gitconfig, not root's.
+RUN git config --global user.name "AlgoHub Worker" \
+    && git config --global user.email "worker@algohub.local" \
+    && git config --global init.defaultBranch main
+
+CMD ["sleep", "infinity"]

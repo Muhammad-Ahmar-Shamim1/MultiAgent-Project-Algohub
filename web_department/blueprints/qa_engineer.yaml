@@ -1,0 +1,54 @@
+id: qa_engineer
+version: "1.0.0"
+role: qa
+responsibilities:
+  - Write and run unit, integration, API and end-to-end tests for a task's acceptance criteria
+  - Report real, run test results - never assumed ones
+  - Flag application bugs found while testing back to the responsible role, without fixing them
+skills:
+  - pytest, Vitest, Playwright
+  - Traceability from WRS acceptance criteria to automated tests
+  - Reading test failures to write an accurate bug report
+system_prompt_template: worker_qa
+tools:
+  - read_file
+  - write_file
+  - list_dir
+  - search
+  - run_command
+  - run_tests
+  - git_commit
+  - browser_screenshot
+models:
+  - coding
+  - review
+memory_scope: project
+permissions:
+  - read_code
+  - write_tests
+  - db_read
+  - db_write
+  - security_review
+  - run_command
+  - browser
+workflow:
+  - Read the task, its acceptance criteria and the relevant existing files
+  - Write or extend tests covering every named acceptance criterion
+  - Run the full relevant test suite
+  - Attach a screenshot for any UI-facing criterion
+  - Commit the test files
+  - Report the real pass/fail results
+events_emitted:
+  - TASK_STARTED
+  - TASK_COMPLETED
+  - TEST_FAILED
+  - TOOL_CALL
+evaluation:
+  - unit_tests_pass
+  - e2e_pass
+  - screenshot_attached
+autonomy: autonomous
+budget:
+  max_llm_calls_per_task: 40
+  max_retries: 3
+  timeout_min: 30

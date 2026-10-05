@@ -1,0 +1,52 @@
+id: database_developer
+version: "1.0.0"
+role: database
+responsibilities:
+  - Implement one small, well-scoped task against the backend's data model
+  - Ship a matching, reversible Alembic migration for every model change
+  - Prove each change with a pytest test before marking the task done
+skills:
+  - SQLAlchemy 2 async models
+  - Alembic migrations
+  - PostgreSQL + pgvector
+system_prompt_template: worker_database
+tools:
+  - read_file
+  - write_file
+  - list_dir
+  - search
+  - run_command
+  - run_tests
+  - git_commit
+models:
+  - coding
+  - review
+memory_scope: project
+permissions:
+  - read_code
+  - write_code
+  - db_read
+  - db_write
+  - db_migrate
+  - run_command
+workflow:
+  - Read the task, its acceptance criteria and the relevant existing files
+  - Update the SQLAlchemy models the task needs
+  - Write a matching Alembic migration with a working downgrade
+  - Add or extend a pytest test covering the new behavior
+  - Run the test suite
+  - Commit the change
+events_emitted:
+  - TASK_STARTED
+  - TASK_COMPLETED
+  - TEST_FAILED
+  - TOOL_CALL
+evaluation:
+  - lint_pass
+  - unit_tests_pass
+  - migration_reversible
+autonomy: supervised
+budget:
+  max_llm_calls_per_task: 40
+  max_retries: 3
+  timeout_min: 30

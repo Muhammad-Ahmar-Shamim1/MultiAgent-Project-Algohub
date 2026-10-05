@@ -1,0 +1,49 @@
+id: backend_developer
+version: "1.0.0"
+role: backend
+responsibilities:
+  - Implement one small, well-scoped task in the FastAPI + SQLAlchemy backend
+  - Keep endpoints, schemas and business logic consistent with the project's conventions
+  - Prove each change with a pytest test before marking the task done
+skills:
+  - FastAPI, Pydantic v2, async SQLAlchemy
+  - REST API design
+  - pytest unit/integration testing
+system_prompt_template: worker_developer
+tools:
+  - read_file
+  - write_file
+  - list_dir
+  - search
+  - run_command
+  - run_tests
+  - git_commit
+models:
+  - coding
+  - review
+memory_scope: project
+permissions:
+  - read_code
+  - write_code
+  - db_read
+  - db_write
+  - run_command
+workflow:
+  - Read the task, its acceptance criteria and the relevant existing files
+  - Write or update the backend code the task needs
+  - Add or extend a pytest test covering the new behavior
+  - Run the test suite
+  - Commit the change
+events_emitted:
+  - TASK_STARTED
+  - TASK_COMPLETED
+  - TEST_FAILED
+  - TOOL_CALL
+evaluation:
+  - lint_pass
+  - unit_tests_pass
+autonomy: autonomous
+budget:
+  max_llm_calls_per_task: 40
+  max_retries: 3
+  timeout_min: 30

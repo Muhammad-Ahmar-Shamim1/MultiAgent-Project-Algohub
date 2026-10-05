@@ -1,0 +1,104 @@
+# Model Router provider list (IR-020..IR-024, SRS 11.1).
+#
+# Fields per entry:
+#   name             unique id, used in logs/usage tracking/LLMCall.provider
+#   model            LiteLLM model string ("provider/model"). Chat models on Ollama use the
+#                    "ollama_chat/" prefix (not "ollama/") so LiteLLM sends the message list to
+#                    Ollama's /api/chat instead of flattening it into /api/generate.
+#   tag              private (local, never sent to it if confidential) | shared (free cloud tier;
+#                    may train on prompts, so confidential requests must never use it - IR-024)
+#   rpm / rpd        the tier's requests-per-minute / requests-per-day limit; null = unlimited.
+#                    The router enforces rpd (NFR-002); rpm is informational, for a future scheduler.
+#   context_window   tokens
+#   strengths        which purposes this provider serves: planning | coding | review | embedding
+#                    (SRS 11.1: planning/architecture -> strongest free API model; coding -> local;
+#                    review -> free API model, then local; embeddings -> local, always)
+#   api_base_env     Settings field name holding the base URL (local providers only)
+#   api_key_env      Settings field name holding the API key (shared providers only)
+#
+# Router order per purpose: providers are tried within their tag group in the order listed here;
+# see web_department/llm/router.py:_PURPOSE_ORDER for which tag goes first per purpose.
+
+providers:
+  - name: ollama-qwen3-8b
+    model: ollama_chat/qwen3:8b
+    tag: private
+    rpm: null
+    rpd: null
+    context_window: 32768
+    strengths: [planning, coding, review]
+    api_base_env: ollama_base_url
+
+  - name: ollama-nomic-embed-text
+    model: ollama/nomic-embed-text
+    tag: private
+    rpm: null
+    rpd: null
+    context_window: 8192
+    strengths: [embedding]
+    api_base_env: ollama_base_url
+
+  # --- Shared free-tier fallbacks -------------------------------------------------------------
+  # Commented out by default: no cost/privacy surprises on a fresh checkout. To enable one, set
+  # its API key in .env (see .env.example) and uncomment its block below. Limits (rpm/rpd) are
+  # approximate free-tier figures as of this writing - check the provider's current published
+  # limits before relying on them (C-3).
+
+  - name: groq-llama-3.3-70b
+    model: groq/llama-3.3-70b-versatile
+    tag: shared
+    rpm: 30
+    rpd: 14400
+    context_window: 131072
+    strengths: [planning, coding, review]
+    api_key_env: groq_api_key
+
+  # - name: cerebras-llama-3.3-70b
+  #   model: cerebras/llama-3.3-70b
+  #   tag: shared
+  #   rpm: 30
+  #   rpd: 14400
+  #   context_window: 131072
+  #   strengths: [planning, review]
+  #   api_key_env: cerebras_api_key
+
+  # - name: openrouter-free-llama
+  #   model: openrouter/meta-llama/llama-3.3-70b-instruct:free
+  #   tag: shared
+  #   rpm: 20
+  #   rpd: 200
+  #   context_window: 131072
+  #   strengths: [planning, coding, review]
+  #   api_key_env: openrouter_api_key
+
+  # - name: github-models-gpt-4o-mini
+  #   model: github/gpt-4o-mini
+  #   tag: shared
+  #   rpm: 15
+  #   rpd: 150
+  #   context_window: 128000
+  #   strengths: [planning, review]
+  #   api_key_env: github_models_token
+
+  # --- Reference only: not yet wired into config/settings.py ----------------------------------
+  # AGENTS.md currently limits shared free tiers to Groq, Cerebras, OpenRouter free and GitHub
+  # Models. These two are shown only so the YAML schema for them is documented; enabling them
+  # needs a matching *_api_key field added to Settings first.
+
+  # - name: gemini-2.0-flash
+  #   model: gemini/gemini-2.0-flash
+  #   tag: shared
+  #   rpm: 15
+  #   rpd: 1500
+  #   context_window: 1000000
+  #   strengths: [planning, review]
+  #   api_key_env: google_ai_studio_api_key
+
+  # - name: mistral-large-free
+  #   model: mistral/mistral-large-latest
+  #   tag: shared
+  #   rpm: 1
+  #   rpd: 500
+  #   context_window: 131072
+  #   strengths: [planning, review]
+  #   api_key_env: mistral_api_key

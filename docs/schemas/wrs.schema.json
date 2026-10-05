@@ -1,0 +1,228 @@
+{
+  "$defs": {
+    "Entity": {
+      "additionalProperties": false,
+      "description": "One data entity (e.g. \"User\", \"Order\").",
+      "properties": {
+        "name": {
+          "title": "Name",
+          "type": "string"
+        },
+        "fields": {
+          "items": {
+            "$ref": "#/$defs/EntityField"
+          },
+          "minItems": 1,
+          "title": "Fields",
+          "type": "array"
+        },
+        "relations": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Relations",
+          "type": "array"
+        }
+      },
+      "required": [
+        "name",
+        "fields"
+      ],
+      "title": "Entity",
+      "type": "object"
+    },
+    "EntityField": {
+      "additionalProperties": false,
+      "description": "One field of a data entity.",
+      "properties": {
+        "name": {
+          "title": "Name",
+          "type": "string"
+        },
+        "type": {
+          "title": "Type",
+          "type": "string"
+        },
+        "required": {
+          "default": true,
+          "title": "Required",
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "name",
+        "type"
+      ],
+      "title": "EntityField",
+      "type": "object"
+    },
+    "Feature": {
+      "additionalProperties": false,
+      "description": "One feature of the product (FR-021, FR-023: every feature needs \u22651 acceptance criterion).",
+      "properties": {
+        "id": {
+          "title": "Id",
+          "type": "string"
+        },
+        "name": {
+          "title": "Name",
+          "type": "string"
+        },
+        "description": {
+          "title": "Description",
+          "type": "string"
+        },
+        "priority": {
+          "default": "must",
+          "enum": [
+            "must",
+            "should",
+            "could"
+          ],
+          "title": "Priority",
+          "type": "string"
+        },
+        "acceptance": {
+          "items": {
+            "type": "string"
+          },
+          "minItems": 1,
+          "title": "Acceptance",
+          "type": "array"
+        }
+      },
+      "required": [
+        "id",
+        "name",
+        "description",
+        "acceptance"
+      ],
+      "title": "Feature",
+      "type": "object"
+    },
+    "Page": {
+      "additionalProperties": false,
+      "description": "One page / screen and which roles may see it.",
+      "properties": {
+        "route": {
+          "title": "Route",
+          "type": "string"
+        },
+        "purpose": {
+          "title": "Purpose",
+          "type": "string"
+        },
+        "roles": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Roles",
+          "type": "array"
+        }
+      },
+      "required": [
+        "route",
+        "purpose"
+      ],
+      "title": "Page",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "description": "The full WRS (FR-020, FR-021).\n\nPost-validation, beyond per-field rules: entity names are unique, and every role a page\nreferences is declared in ``roles`` (FR-023 requires each feature's own acceptance list,\nalready enforced by ``Feature.acceptance``).",
+  "properties": {
+    "project_type": {
+      "title": "Project Type",
+      "type": "string"
+    },
+    "domain": {
+      "title": "Domain",
+      "type": "string"
+    },
+    "roles": {
+      "items": {
+        "type": "string"
+      },
+      "minItems": 1,
+      "title": "Roles",
+      "type": "array"
+    },
+    "features": {
+      "items": {
+        "$ref": "#/$defs/Feature"
+      },
+      "minItems": 1,
+      "title": "Features",
+      "type": "array"
+    },
+    "pages": {
+      "items": {
+        "$ref": "#/$defs/Page"
+      },
+      "title": "Pages",
+      "type": "array"
+    },
+    "entities": {
+      "items": {
+        "$ref": "#/$defs/Entity"
+      },
+      "title": "Entities",
+      "type": "array"
+    },
+    "api_needs": {
+      "items": {
+        "type": "string"
+      },
+      "title": "Api Needs",
+      "type": "array"
+    },
+    "integrations": {
+      "items": {
+        "type": "string"
+      },
+      "title": "Integrations",
+      "type": "array"
+    },
+    "security_level": {
+      "default": "standard",
+      "enum": [
+        "standard",
+        "high"
+      ],
+      "title": "Security Level",
+      "type": "string"
+    },
+    "non_functional": {
+      "additionalProperties": {
+        "type": "string"
+      },
+      "title": "Non Functional",
+      "type": "object"
+    },
+    "deployment_target": {
+      "default": "local-docker",
+      "title": "Deployment Target",
+      "type": "string"
+    },
+    "stack": {
+      "default": "golden-v1",
+      "title": "Stack",
+      "type": "string"
+    },
+    "open_questions": {
+      "items": {
+        "type": "string"
+      },
+      "title": "Open Questions",
+      "type": "array"
+    }
+  },
+  "required": [
+    "project_type",
+    "domain",
+    "roles",
+    "features"
+  ],
+  "title": "WebRequirementsSpec",
+  "type": "object"
+}

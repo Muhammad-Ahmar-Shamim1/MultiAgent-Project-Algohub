@@ -1,0 +1,180 @@
+# Reusable task template library for the golden-v1 stack (Next.js + FastAPI + PostgreSQL),
+# FR-031. planner.py expands these deterministically from a WebRequirementsSpec before asking the
+# LLM for anything the templates don't cover.
+#
+# Fields:
+#   id                 template id, referenced by other templates' depends_on
+#   title              human-readable base title; parameterized instances become "title: <item>"
+#   role               worker role (web_department.config.permissions.Role)
+#   parameterized_by   null | entities | pages | features - which WRS collection produces one task
+#                      instance per item; null means exactly one task instance is created
+#   depends_on         template ids this depends on. If a referenced template is parameterized,
+#                      this depends on the LAST part of EVERY instance of it (planner.py resolves
+#                      this - there is no per-item linkage in the WRS between e.g. a page and the
+#                      feature/entity it belongs to, so the dependency is template-wide).
+#   inputs / outputs   informational names describing what the task reads/produces
+#   acceptance_checks  human-readable checks; "{param}" is substituted with the item's name/route/id
+#   est_files          rough file-count estimate; drives the >5-files split rule (FR-038)
+#   est_lines          rough line-count estimate; drives the >300-lines split rule (FR-038)
+
+templates:
+  - id: init_repo
+    title: Initialize repository scaffold
+    role: devops
+    parameterized_by: null
+    depends_on: []
+    inputs: []
+    outputs: [repo_scaffold]
+    acceptance_checks:
+      - Repository scaffold builds and CI passes
+    est_files: 8
+    est_lines: 150
+
+  - id: architecture
+    title: Architecture record
+    role: architect
+    parameterized_by: null
+    depends_on: [init_repo]
+    inputs: [wrs]
+    outputs: [architecture_doc, openapi_contract, schema_draft]
+    acceptance_checks:
+      - docs/architecture.md lists the components and the decision log
+      - openapi.yaml is a valid OpenAPI document with an operation for every feature
+      - db/schema.md covers every entity with its relations and indexes
+    # Kept at 3 files / under 300 lines so FR-038 never splits it: the three documents must be
+    # written together to stay consistent with each other.
+    est_files: 3
+    est_lines: 280
+
+  - id: db_schema
+    title: Design database schema
+    role: database
+    parameterized_by: null
+    depends_on: [architecture]
+    inputs: [entities]
+    outputs: [schema_draft]
+    acceptance_checks:
+      - Schema draft covers every WRS entity and its fields
+    est_files: 2
+    est_lines: 120
+
+  - id: db_migration
+    title: Write initial migration
+    role: database
+    parameterized_by: null
+    depends_on: [db_schema]
+    inputs: [schema_draft]
+    outputs: [migration]
+    acceptance_checks:
+      - Migration applies cleanly on an empty database
+      - Migration downgrades cleanly
+    est_files: 1
+    est_lines: 100
+
+  - id: backend_foundation
+    title: Backend foundation
+    role: backend
+    parameterized_by: null
+    depends_on: [db_migration]
+    inputs: []
+    outputs: [backend_scaffold]
+    acceptance_checks:
+      - Backend app boots and /health returns ok
+    est_files: 6
+    est_lines: 250
+
+  - id: auth_api
+    title: Authentication API
+    role: backend
+    parameterized_by: null
+    depends_on: [backend_foundation]
+    inputs: [roles]
+    outputs: [auth_endpoints]
+    acceptance_checks:
+      - A user can register, log in and log out
+    est_files: 4
+    est_lines: 220
+
+  - id: crud_api
+    title: CRUD API
+    role: backend
+    parameterized_by: entities
+    depends_on: [backend_foundation]
+    inputs: [entity]
+    outputs: [crud_endpoints]
+    acceptance_checks:
+      - "CRUD endpoints for {param} pass their unit and integration tests"
+    est_files: 3
+    est_lines: 180
+
+  - id: frontend_foundation
+    title: Frontend foundation
+    role: frontend
+    parameterized_by: null
+    depends_on: [init_repo]
+    inputs: []
+    outputs: [frontend_scaffold]
+    acceptance_checks:
+      - Frontend app boots and renders a placeholder page
+    est_files: 5
+    est_lines: 200
+
+  - id: page
+    title: Page
+    role: frontend
+    parameterized_by: pages
+    depends_on: [frontend_foundation]
+    inputs: [route]
+    outputs: [page_component]
+    acceptance_checks:
+      - "Page {param} renders and matches its stated purpose"
+    est_files: 2
+    est_lines: 140
+
+  - id: api_integration
+    title: Wire up feature
+    role: api_integration
+    parameterized_by: features
+    depends_on: [page, crud_api, auth_api]
+    inputs: [feature]
+    outputs: [wired_feature]
+    acceptance_checks:
+      - "{param}'s acceptance criteria pass against the real backend"
+    est_files: 3
+    est_lines: 160
+
+  - id: tests_e2e
+    title: End-to-end tests
+    role: qa
+    parameterized_by: features
+    depends_on: [api_integration]
+    inputs: [feature]
+    outputs: [e2e_tests]
+    acceptance_checks:
+      - "End-to-end tests for {param} pass"
+    est_files: 2
+    est_lines: 120
+
+  - id: security_review
+    title: Security review
+    role: security
+    parameterized_by: null
+    depends_on: [tests_e2e]
+    inputs: []
+    outputs: [security_report]
+    acceptance_checks:
+      - No High or Critical severity findings remain open
+    est_files: 1
+    est_lines: 60
+
+  - id: deploy
+    title: Deploy
+    role: devops
+    parameterized_by: null
+    depends_on: [security_review]
+    inputs: []
+    outputs: [deployment]
+    acceptance_checks:
+      - Post-deploy health check passes
+    est_files: 2
+    est_lines: 80

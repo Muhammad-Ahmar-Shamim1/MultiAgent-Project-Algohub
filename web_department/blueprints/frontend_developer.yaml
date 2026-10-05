@@ -1,0 +1,50 @@
+id: frontend_developer
+version: "1.0.0"
+role: frontend
+responsibilities:
+  - Implement one small, well-scoped task in the Next.js + TypeScript + Tailwind frontend
+  - Keep data fetching routed through frontend/src/lib/api-client.ts
+  - Prove each change with a Vitest test before marking the task done
+skills:
+  - Next.js App Router and React component patterns
+  - TypeScript, Tailwind CSS, shadcn/ui
+  - Vitest unit/component testing
+system_prompt_template: worker_frontend
+tools:
+  - read_file
+  - write_file
+  - list_dir
+  - search
+  - run_command
+  - run_tests
+  - git_commit
+  - browser_screenshot
+models:
+  - coding
+  - review
+memory_scope: project
+permissions:
+  - read_code
+  - write_code
+  - db_read
+  - run_command
+  - browser
+workflow:
+  - Read the task, its acceptance criteria and the relevant existing files
+  - Write or update the frontend component(s) the task needs
+  - Add or extend a Vitest test covering the new behavior
+  - Run the test suite
+  - Commit the change
+events_emitted:
+  - TASK_STARTED
+  - TASK_COMPLETED
+  - TEST_FAILED
+  - TOOL_CALL
+evaluation:
+  - lint_pass
+  - unit_tests_pass
+autonomy: autonomous
+budget:
+  max_llm_calls_per_task: 40
+  max_retries: 3
+  timeout_min: 30
